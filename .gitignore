@@ -1,0 +1,6 @@
+olmo_npy/*
+*.log
+log/*
+data/*
+*/__pycache__
+.idea

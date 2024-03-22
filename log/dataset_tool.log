@@ -1,0 +1,6 @@
+2024-03-22 16:35:23,409 - ERROR - Error processing /root/olmo_datasets_tool/data/test/c-sharp_train-00000-of-00045.zst:1 -> 
+2024-03-22 16:35:57,627 - ERROR - Error processing /root/olmo_datasets_tool/data/test/c-sharp_train-00001-of-00045.zst:1 -> 
+2024-03-22 16:36:02,684 - INFO - Done! File(s) written to /root/olmo_datasets_tool/olmo_npy
+2024-03-22 16:36:16,866 - INFO - Total tokens written: 0
+2024-03-22 16:37:57,983 - ERROR - Error processing /root/olmo_datasets_tool/data/test/c-sharp_train-00000-of-00045.zst:1 -> 
+2024-03-22 16:39:05,849 - ERROR - Error processing /root/olmo_datasets_tool/data/test/c-sharp_train-00001-of-00045.zst:1 -> 
