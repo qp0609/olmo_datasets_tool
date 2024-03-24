@@ -192,7 +192,6 @@ def get_progress() -> Progress:
         BarColumn(),
         TaskProgressColumn(),
         TimeElapsedColumn(),
-        console=log.handlers[0].stream
     )
 
 
