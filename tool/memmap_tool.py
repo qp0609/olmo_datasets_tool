@@ -31,7 +31,8 @@ class MemmapTool:
         memmap_path: str,
         dtype: np.dtype,
         safe_mode: bool = False,
-        max_tokens: int = 512 * 1024 * 1024,  # 512M tokens * 2 bytes per token (uint16) = 1GB
+        # 512M tokens * 2 bytes per token (uint16) = 1GB
+        max_tokens: int = 512 * 1024 * 1024,
         sample_rate: float = 1.0,
         random_seed: int = 3920,
         repeat_sequence: int = 1,
@@ -58,12 +59,14 @@ class MemmapTool:
         total_tokens = 0
 
         # make sure path is a list
-        path_or_paths = [path_or_paths] if isinstance(path_or_paths, str) else path_or_paths
+        path_or_paths = [path_or_paths] if isinstance(
+            path_or_paths, str) else path_or_paths
 
         with ExitStack() as stack:
             it = itertools.chain.from_iterable(
                 # repeat the sequence if necessary
-                tokenize_file(tokenizer=tokenizer, path=path, safe_mode=safe_mode, cache_dir=cache_dir)
+                tokenize_file(tokenizer=tokenizer, path=path,
+                              safe_mode=safe_mode, cache_dir=cache_dir)
                 for _ in range(repeat_sequence)
                 for path in path_or_paths
             )
@@ -80,7 +83,8 @@ class MemmapTool:
 
                 # if leftovers_to_write is not None it means that either memmap is None or it's full,
                 # so we will need to create a new one later
-                leftovers_to_write = memmap.write(token_ids, flush=flush) if memmap is not None else token_ids
+                leftovers_to_write = memmap.write(
+                    token_ids, flush=flush) if memmap is not None else token_ids
 
                 if leftovers_to_write is not None:
                     # close the previous memmap (if one is open)
@@ -88,7 +92,8 @@ class MemmapTool:
 
                     # create a new memmap file; progressively name them with an index
                     curr_memmap_path = f"{memmap_path}_{file_index:05d}.npy"
-                    memmap = stack.enter_context(MemmapFile(path=curr_memmap_path, dtype=dtype, max_tokens=max_tokens))
+                    memmap = stack.enter_context(MemmapFile(
+                        path=curr_memmap_path, dtype=dtype, max_tokens=max_tokens))
 
                     # increment the file index and reset the tokens index
                     file_index += 1
@@ -172,7 +177,8 @@ class MemmapFile:
         else:
             rest = None
 
-        self._memmap[self._written_tokens: self._written_tokens + len(values)] = values
+        self._memmap[self._written_tokens: self._written_tokens +
+                     len(values)] = values
         self._written_tokens += len(values)
 
         if flush:
@@ -188,14 +194,17 @@ class MemmapFile:
         if self.path.is_local:
             self._local_path = self.path.as_path
             # make sure the directory exists
-            self._local_path.parent.mkdir(parents=True, exist_ok=True)  # type: ignore
+            self._local_path.parent.mkdir(
+                parents=True, exist_ok=True)  # type: ignore
         else:
             with NamedTemporaryFile(delete=False, prefix="olmo_memmap") as f:
                 # if the destination for the memmap is not local, we need to write to a temporary file first
                 self._local_path = Path(f.name)
 
-        self._memmap = np.memmap(mode="w+", filename=self._local_path, dtype=self.dtype, shape=(self.max_tokens,))
-        log.info(f"Created memmap file at {self._local_path} of size {self._memmap.nbytes:,} bytes")
+        self._memmap = np.memmap(
+            mode="w+", filename=self._local_path, dtype=self.dtype, shape=(self.max_tokens,))
+        log.info(
+            f"Created memmap file at {self._local_path} of size {self._memmap.nbytes:,} bytes")
 
         return self
 
@@ -215,20 +224,25 @@ class MemmapFile:
             # we resize the memmap to the number of tokens actually written
             if self._written_tokens < self.max_tokens:
                 del self._memmap
-                os.rename(self._local_path, (temp_path := self._local_path.with_suffix(".tmp")))
+                os.rename(self._local_path, (temp_path :=
+                          self._local_path.with_suffix(".tmp")))
                 new_memmap = np.memmap(
                     mode="w+", filename=self._local_path, dtype=self.dtype, shape=(self._written_tokens,)
                 )
-                old_memmap = np.memmap(mode="r", filename=temp_path, dtype=self.dtype, shape=(self.max_tokens,))
+                old_memmap = np.memmap(
+                    mode="r", filename=temp_path, dtype=self.dtype, shape=(self.max_tokens,))
                 new_memmap[:] = old_memmap[: self._written_tokens]
                 new_memmap.flush()
-                log.info(f"Resized memmap file from {old_memmap.nbytes:,} to {new_memmap.nbytes:,} bytes")
+                log.info(
+                    f"Resized memmap file from {self._local_path} {old_memmap.nbytes:,} to {new_memmap.nbytes:,} bytes")
                 os.remove(temp_path)
 
             if not self.path.is_local:
                 with ExitStack() as stack:
-                    f = stack.enter_context(stream_file_for_read(self._local_path, "rb"))
-                    g = stack.enter_context(open_file_for_write(self.path, mode="wb"))
+                    f = stack.enter_context(
+                        stream_file_for_read(self._local_path, "rb"))
+                    g = stack.enter_context(
+                        open_file_for_write(self.path, mode="wb"))
                     g.write(f.read())
                 log.info(f"Written memmap file to {self.path.as_str}")
         finally:

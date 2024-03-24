@@ -16,12 +16,9 @@ from rich.progress import (
 )
 from smashed.utils.io_utils import (
     decompress_stream,
-    # open_file_for_write,
     recursively_list_files,
     stream_file_for_read,
 )
-# import tokenizer
-# sys.path.append('../tokenizer')
 from tokenizer import Tokenizer
 from tool import DataTool, MemmapTool
 
@@ -143,13 +140,19 @@ def main(
             future = executor.submit(
                 fill_memmap_fn, path_or_paths=src_path, memmap_path=dst_path)
             futures.append(future)
+        task_num = len(futures)
+        i = 0
         with get_progress() as progress:
             for future in progress.track(
                     concurrent.futures.as_completed(futures),
                     description="Filling memmap arrays...",
-                    total=len(futures),
+                    total=task_num,
             ):
+                i += 1
                 total_tokens_written += future.result()
+                log.info(
+                    f"future finish, total={task_num}, current={task_num}, total_tokens={total_tokens_written}")
+
     log.info(f"Done! File(s) written to {output}")
     log.info(f"Total tokens written: {total_tokens_written:,}")
 
@@ -189,6 +192,7 @@ def get_progress() -> Progress:
         BarColumn(),
         TaskProgressColumn(),
         TimeElapsedColumn(),
+        console=log.handlers[0].stream
     )
 
 
