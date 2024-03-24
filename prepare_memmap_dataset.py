@@ -151,7 +151,7 @@ def main(
                 i += 1
                 total_tokens_written += future.result()
                 log.info(
-                    f"future finish, total={task_num}, current={task_num}, total_tokens={total_tokens_written}")
+                    f"future finish, total={task_num}, current={i}, total_tokens={total_tokens_written}")
 
     log.info(f"Done! File(s) written to {output}")
     log.info(f"Total tokens written: {total_tokens_written:,}")
