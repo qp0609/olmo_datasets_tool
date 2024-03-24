@@ -2,9 +2,8 @@ import concurrent.futures
 import functools
 import json
 import os
-import sys
 from concurrent.futures import Future
-from typing import Generator, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import List, Optional, Tuple
 
 import click
 import numpy as np
@@ -16,9 +15,8 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 from smashed.utils.io_utils import (
-    MultiPath,
     decompress_stream,
-    open_file_for_write,
+    # open_file_for_write,
     recursively_list_files,
     stream_file_for_read,
 )
@@ -142,7 +140,8 @@ def main(
     with concurrent.futures.ProcessPoolExecutor(max_workers=workers_cnt) as executor:
         futures: List[Future[int]] = []
         for src_path, dst_path in zip(exploded_src, exploded_dst):
-            future = executor.submit(fill_memmap_fn, path_or_paths=src_path, memmap_path=dst_path)
+            future = executor.submit(
+                fill_memmap_fn, path_or_paths=src_path, memmap_path=dst_path)
             futures.append(future)
         with get_progress() as progress:
             for future in progress.track(
@@ -153,7 +152,6 @@ def main(
                 total_tokens_written += future.result()
     log.info(f"Done! File(s) written to {output}")
     log.info(f"Total tokens written: {total_tokens_written:,}")
-
 
     if validate:
         log.info("Validating...")
@@ -174,7 +172,8 @@ def main(
             memmap = np.memmap(output_path, mode="r", dtype=dtype)
             total_tokens -= len(memmap)
             total_docs -= (memmap == tokenizer.eos_token_id).sum()
-            assert (memmap < tokenizer.vocab_size).all(), f"Invalid token ID in {output_path}"
+            assert (memmap < tokenizer.vocab_size).all(
+            ), f"Invalid token ID in {output_path}"
 
         assert total_tokens == 0, f"Total tokens mismatch: {total_tokens} != 0"
         assert total_docs == 0, f"Total docs mismatch: {total_docs} != 0"

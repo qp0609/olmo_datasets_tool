@@ -4,3 +4,6 @@ log/*
 data/*
 */__pycache__
 .idea
+.conda
+.gitignore.swp
+.vscode/*

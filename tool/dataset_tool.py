@@ -1,14 +1,13 @@
 import numpy as np
 import random
-from typing import Tuple, Union, List
-from contextlib import ExitStack
+from typing import Tuple
 import logging
 from smashed.utils.io_utils import (
     recursively_list_files,
 )
 import zstandard as zstd
 import json
-from typing import Generator, Any
+from typing import Generator
 
 log = logging.getLogger(__name__)
 
@@ -60,6 +59,6 @@ class DataTool:
                         for data in json_data:
                             if isinstance(data, dict) and key_name in data.keys():
                                 yield str(data[key_name])
-                except json.decoder.JSONDecodeError as e:
+                except json.decoder.JSONDecodeError:
                     log.exception(f'extract zstd error, cause=decoderError, file={src}')
                     pass
