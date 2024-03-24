@@ -7,3 +7,4 @@ data/*
 .conda
 .gitignore.swp
 .vscode/*
+*/.DS_Store

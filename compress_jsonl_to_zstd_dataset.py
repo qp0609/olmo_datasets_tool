@@ -1,7 +1,7 @@
 import json
 from typing import Tuple, List
 import click
-from tool.dataset_tool import DataTool
+from tool import DataTool
 from contextlib import ExitStack
 import concurrent.futures
 from concurrent.futures import Future
