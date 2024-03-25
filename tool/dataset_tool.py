@@ -30,12 +30,16 @@ class DataTool:
         np.random.seed(random_seed)
         random.seed(random_seed)
 
-        exploded_src = list(set(path for prefix in src for path in recursively_list_files(prefix)))
+        exploded_src = list(
+            set(path for prefix in src for path in recursively_list_files(prefix)))
+        output_digits = np.ceil(np.log10(len(exploded_src) + 1)).astype(int)
         # shuffle the source paths
         random.shuffle(exploded_src)
 
         # determine the destination paths
-        exploded_dst = [f'{output.rstrip("/")}/{src.split("/")[-1].split(".")[0]}.{suffix}' for src in exploded_src]
+        # exploded_dst = [f'{output.rstrip("/")}/{src.split("/")[-1].split(".")[0]}.{suffix}' for src in exploded_src]
+        exploded_dst = [
+            f'{output.rstrip("/")}/{i:0{output_digits}d}' for i in range(len(exploded_src))]
 
         return tuple(exploded_src), tuple(exploded_dst)
 
@@ -60,5 +64,6 @@ class DataTool:
                             if isinstance(data, dict) and key_name in data.keys():
                                 yield str(data[key_name])
                 except json.decoder.JSONDecodeError:
-                    log.exception(f'extract zstd error, cause=decoderError, file={src}')
+                    log.exception(
+                        f'extract zstd error, cause=decoderError, file={src}')
                     pass
