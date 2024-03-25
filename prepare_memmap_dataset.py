@@ -112,9 +112,7 @@ def main(
     exploded_src, exploded_dst = DataTool.make_source_and_target(
         src=src, output=output, random_seed=random_seed, suffix='npy'
     )
-
-    for i, (src, dst) in enumerate(zip(exploded_src, exploded_dst), 1):
-        print(f'i={i}, src={src}, dst={dst}')
+    print(f'Totally has {len(exploded_src)} files.')
 
     # 2. creating a partial here with all the arguments we need to pass to fill_memmap except for the paths
     # so that we don't make mistakes between debug and non-debug mode
@@ -148,10 +146,16 @@ def main(
                     description="Filling memmap arrays...",
                     total=task_num,
             ):
-                i += 1
-                total_tokens_written += future.result()
-                log.info(
-                    f"future finish, total={task_num}, current={i}, total_tokens={total_tokens_written}")
+                try:
+                    i += 1
+                    total_tokens_written += future.result()
+                    print(
+                        f"Progress={i}/{task_num}, total_tokens_written={total_tokens_written}")
+                    log.info(
+                        f"Progress={i}/{task_num}, total_tokens_written={total_tokens_written}")
+                except Exception as e:
+                    print(e)
+                pass
 
     log.info(f"Done! File(s) written to {output}")
     log.info(f"Total tokens written: {total_tokens_written:,}")

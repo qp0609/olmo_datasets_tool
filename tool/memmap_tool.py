@@ -1,19 +1,15 @@
-import zstandard
 import itertools
 import os
 from contextlib import ExitStack
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Generator, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Generator, List, Optional, Union
 import msgspec
 import numpy as np
 from tokenizer import Tokenizer
-from cached_path import cached_path
 from smashed.utils.io_utils import (
     MultiPath,
-    decompress_stream,
     open_file_for_write,
-    recursively_list_files,
     stream_file_for_read,
 )
 import logging
@@ -39,15 +35,16 @@ class MemmapTool:
         cache_dir: Optional[str] = None,
     ) -> int:
         """Write a memmap file from a file of documents."""
-
         # set the seed in case we need to sample
         np.random.seed(random_seed)
 
         # we need to make a new tokenizer here because it's not pickleable
         # tokenizer = Tokenizer.from_pretrained(tokenizer_id, truncate_to=None)
         file = f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}/tokenizers/{tokenizer_id}"
-        # print(file)
-        tokenizer = Tokenizer.from_file(file, truncate_to=None)
+        try:
+            tokenizer = Tokenizer.from_file(file, truncate_to=None)
+        except Exception as e:
+            raise Exception(f'fill_memmap exception, file:{file}, cause:{e}')
 
         # first memmap file will be created in the loop below
         memmap: Optional[MemmapFile] = None
@@ -172,8 +169,8 @@ class MemmapFile:
             raise RuntimeError("MemmapFile is not open")
 
         if (len(values) + self._written_tokens) >= self.max_tokens:
-            values = values[: self.max_tokens - self._written_tokens]
             rest = values[self.max_tokens - self._written_tokens:]
+            values = values[: self.max_tokens - self._written_tokens]
         else:
             rest = None
 
@@ -203,8 +200,8 @@ class MemmapFile:
 
         self._memmap = np.memmap(
             mode="w+", filename=self._local_path, dtype=self.dtype, shape=(self.max_tokens,))
-        log.info(
-            f"Created memmap file at {self._local_path} of size {self._memmap.nbytes:,} bytes")
+        # log.info(
+        #     f"Created memmap file at {self._local_path} of size {self._memmap.nbytes:,} bytes")
 
         return self
 
@@ -218,24 +215,34 @@ class MemmapFile:
         assert self._memmap is not None, "MemmapFile is not open"
 
         try:
-            # write the memmap to the destination
+            # write the memmap to the destination file on the disk
             self._memmap.flush()
 
             # we resize the memmap to the number of tokens actually written
             if self._written_tokens < self.max_tokens:
-                del self._memmap
-                os.rename(self._local_path, (temp_path :=
-                          self._local_path.with_suffix(".tmp")))
-                new_memmap = np.memmap(
-                    mode="w+", filename=self._local_path, dtype=self.dtype, shape=(self._written_tokens,)
-                )
-                old_memmap = np.memmap(
-                    mode="r", filename=temp_path, dtype=self.dtype, shape=(self.max_tokens,))
-                new_memmap[:] = old_memmap[: self._written_tokens]
-                new_memmap.flush()
-                log.info(
-                    f"Resized memmap file from {self._local_path} {old_memmap.nbytes:,} to {new_memmap.nbytes:,} bytes")
-                os.remove(temp_path)
+                try:
+                    del self._memmap
+                    os.rename(self._local_path, (temp_path :=
+                                                 self._local_path.with_suffix(".tmp")))
+                    new_memmap = np.memmap(
+                        mode="w+", filename=self._local_path, dtype=self.dtype, shape=(self._written_tokens,)
+                    )
+                    old_memmap = np.memmap(
+                        mode="r", filename=temp_path, dtype=self.dtype, shape=(self.max_tokens,))
+                    new_memmap[:] = old_memmap[: self._written_tokens]
+                    new_memmap.flush()
+                    # log.info(
+                    #     f"Resized memmap file from {self._local_path} {old_memmap.nbytes:,} to {new_memmap.nbytes:,} bytes")
+                    os.remove(temp_path)
+                except Exception as e:
+                    print(
+                        f'Resized memmap file:{self._local_path} exception:{e}')
+                    # 删除临时文件和原始文件
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                    if os.path.exists(self._local_path):
+                        os.remove(self._local_path)
+                    pass
 
             if not self.path.is_local:
                 with ExitStack() as stack:
